@@ -1,0 +1,76 @@
+library(downloader)
+library(dplyr)
+library(lubridate)
+
+Url <- "https://d396qusza40orc.cloudfront.net/exdata%2Fdata%2Fhousehold_power_consumption.zip"
+download(Url, dest="dataset.zip", mode="wb")
+unzip ("dataset.zip", exdir = "./")
+
+# read in data
+data <- read.table("./household_power_consumption.txt", sep = ";", header = T, stringsAsFactors = F)
+
+# select desired days
+data <- filter(data, Date == "1/2/2007" | Date == "2/2/2007")
+
+# convert dates to better format
+dates <- data$Date
+better_dates <- as.Date(dates, format = "%d/%m/%Y")
+data$Date <- better_dates
+
+# convert date and time columns to one column in date format
+Date_Time <- paste(data$Date, data$Time)
+data <- cbind(Date_Time, data[ ,3:9])
+
+# reformat date and time 
+better_Date_Time <- ymd_hms(Date_Time)
+data$Date_Time <- better_Date_Time
+
+# convert '?' to NAs
+data <- data %>% 
+        mutate_at(vars(Global_active_power,Global_reactive_power, Voltage, Global_intensity,Sub_metering_1, Sub_metering_2, Sub_metering_3 ),
+                  ~na_if(., '?'))
+# convert variable vectors to numeric class
+data <- data %>%
+        mutate_at(vars(Global_active_power,Global_reactive_power, Voltage, Global_intensity,Sub_metering_1, Sub_metering_2, Sub_metering_3 ),
+                  as.numeric)
+
+
+## plot 4
+
+
+png(filename = "plot4.png")
+par(mfrow = c(2,2))
+
+# 1
+plot(data$Date_Time, data$Global_active_power,
+     type = "l",
+     xlab = '',
+     ylab = "Global Active Power (kilowatts)")
+
+# 2
+plot(data$Date_Time, data$Voltage,
+     type = "l",
+     xlab = 'Date/Time',
+     ylab = "Voltage")
+
+# 3
+plot(data$Date_Time, data$Sub_metering_1,
+     type = "l",
+     xlab = '',
+     ylab = "Global Active Power (kilowatts)")
+lines(data$Date_Time, data$Sub_metering_2,
+      type = "l", col = "red")
+lines(data$Date_Time, data$Sub_metering_3,
+      type = "l", col = "blue")
+legend("topright", legend = c("Sub_metering_1", "Sub_metering_2", "Sub_metering_3"), 
+       col = c("black", "red", "blue"), border = '', lty = 1, cex=0.5, seg.len = 4)
+
+# 4
+plot(data$Date_Time, data$Global_reactive_power,
+     type = "l",
+     xlab = 'Date/Time',
+     ylab = "Global_reactive_power")
+
+dev.off()
+
+
